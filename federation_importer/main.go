@@ -4,11 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/crewjam/go-xmlsec"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
@@ -123,9 +123,7 @@ func getEntityDescriptors(entityURL string, pem []byte) (*models.EntitiesDescrip
 }
 
 func main() {
-	// TODO: cli args (queue location, url)
-	// TODO: queue system
-
+	// TODO: move to db
 	ukfedCert := []byte(`-----BEGIN CERTIFICATE-----
 MIIDxzCCAq+gAwIBAgIJAOwuoY8tsvYGMA0GCSqGSIb3DQEBCwUAMHoxCzAJBgNV
 BAYTAkdCMUMwQQYDVQQKDDpVSyBBY2Nlc3MgTWFuYWdlbWVudCBGZWRlcmF0aW9u
@@ -150,11 +148,8 @@ cndOf1pZRLzb6a+akIYi//1qO48HpB4wouH9gS3ZER+rNBhVWu301UYxoVI7o8mG
 Yq7dENJce7lO9yE=
 -----END CERTIFICATE-----`)
 
-	entityURL := "http://metadata.ukfederation.org.uk/ukfederation-metadata.xml"
-	queueUsername := "rabbitmq"
-	queuePassword := "rabbitmq"
-	queueHost := "rabbit"
-	queuePort := 5672
+	// TODO: move to db
+	entityURL := os.Getenv("ENTITY_URL")
 
 	entitiesDescriptors, err := getEntityDescriptors(entityURL, ukfedCert)
 	if err != nil {
@@ -162,14 +157,7 @@ Yq7dENJce7lO9yE=
 		return
 	}
 
-	conn, err := amqp.Dial(fmt.Sprintf(
-		"amqp://%s:%s@%s:%d/",
-		queueUsername,
-		queuePassword,
-		queueHost,
-		queuePort,
-	))
-
+	conn, err := amqp.Dial(os.Getenv("QUEUE_CONN"))
 	if err != nil {
 		log.Fatal("cannot connect to queue", err)
 		return

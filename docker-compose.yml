@@ -17,5 +17,8 @@ rabbit:
     #- "./autocluster-0.4.1.ez:/usr/lib/rabbitmq/lib/rabbitmq_server-3.5.5/plugins/autocluster-0.4.1.e
 federation_importer:
     image: "federation_importer:latest"
+    environment:
+        ENTITY_URL: "http://metadata.ukfederation.org.uk/ukfederation-metadata.xml"
+        QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
     links:
         - rabbit
