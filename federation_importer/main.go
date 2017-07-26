@@ -174,6 +174,7 @@ Yq7dENJce7lO9yE=
 	queue, err := createQueue(channel)
 	if err != nil {
 		log.Fatal("cannot create queue")
+		return
 	}
 
 	for _, entityDescriptor := range entitiesDescriptors.EntityDescriptor {

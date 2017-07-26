@@ -22,3 +22,9 @@ federation_importer:
         QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
     links:
         - rabbit
+entity_importer_worker:
+    image: "entity_importer_worker:latest"
+    environment:
+        QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
+    links:
+        - rabbit
