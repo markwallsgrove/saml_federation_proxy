@@ -22,9 +22,19 @@ federation_importer:
         QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
     links:
         - rabbit
-entity_importer_worker:
-    image: "entity_importer_worker:latest"
+        - mongodb
+webui:
+    image: "webui:latest"
+    ports:
+        - "8080:8080"
+mongodb:
+    image: mongo:latest
+    container_name: "mongodb"
     environment:
-        QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
-    links:
-        - rabbit
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - ./data/db:/data/db
+    ports:
+        - 27017:27017
+    command: mongod --smallfiles --logpath=/dev/null # --quiet

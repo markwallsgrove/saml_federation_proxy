@@ -1,0 +1,20 @@
+# build
+FROM golang:1.8-alpine AS build-env
+RUN apk update && apk upgrade && apk add --no-cache bash git openssh curl g++ \
+make perl
+
+# sync files
+RUN mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy
+WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
+COPY . .
+
+# compile
+WORKDIR webui
+RUN go-wrapper download
+RUN CGO_ENABLED=0 go build -a -ldflags '-s' -o /bin/webui main.go
+
+# resulting image
+FROM ubuntu
+COPY --from=build-env /bin/webui /bin
+CMD ["/bin/webui"]
+EXPOSE 8080

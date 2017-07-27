@@ -230,6 +230,8 @@ type EntitiesDescriptor struct {
 }
 
 type EntityDescriptor struct {
+	FederationID                 string                        `json:",omitempty"`
+	Checksum                     []byte                        `json:",omitempty"`
 	EntityID                     string                        `xml:" entityID,attr"  json:",omitempty"`
 	ID                           string                        `xml:" ID,attr"  json:",omitempty"`
 	AttributeAuthorityDescriptor *AttributeAuthorityDescriptor `xml:"urn:oasis:names:tc:SAML:2.0:metadata AttributeAuthorityDescriptor,omitempty" json:"AttributeAuthorityDescriptor,omitempty"`

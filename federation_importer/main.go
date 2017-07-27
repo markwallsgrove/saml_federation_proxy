@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/md5"
-	"encoding/json"
 	"encoding/xml"
 	"io"
 	"io/ioutil"
@@ -10,9 +9,10 @@ import (
 	"net/http"
 	"os"
 
+	"gopkg.in/mgo.v2"
+
 	"github.com/crewjam/go-xmlsec"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
-	"github.com/streadway/amqp"
 )
 
 func downloadFile(url string) (io.ReadCloser, error) {
@@ -65,37 +65,6 @@ func calcChecksum(bytes []byte) []byte {
 	hasher := md5.New()
 	hasher.Write(bytes)
 	return hasher.Sum(nil)
-}
-
-func createQueue(channel *amqp.Channel) (amqp.Queue, error) {
-	return channel.QueueDeclare(
-		"ingest_queue", // name
-		true,           // durable
-		false,          // delete when unused
-		false,          // exclusive
-		false,          // no-wait
-		nil,            // arguments
-	)
-}
-
-func publishMessage(job *models.IngestJob, channel *amqp.Channel, queueName string) error {
-	bytes, err := json.Marshal(job)
-	if err != nil {
-		log.Fatal("cannot marshal ingest job", err)
-		return err
-	}
-
-	return channel.Publish(
-		"",        // exchange
-		queueName, // queue name
-		false,     // mandatory
-		false,
-		amqp.Publishing{
-			DeliveryMode: amqp.Persistent,
-			ContentType:  "application/json",
-			Body:         bytes,
-		},
-	)
 }
 
 func getEntityDescriptors(entityURL string, pem []byte) (*models.EntitiesDescriptor, error) {
@@ -151,47 +120,32 @@ Yq7dENJce7lO9yE=
 	// TODO: move to db
 	entityURL := os.Getenv("ENTITY_URL")
 
+	session, err := mgo.Dial("mongodb")
+	if err != nil {
+		log.Fatal("cannot connect to mongo", err)
+		return
+	}
+
+	defer session.Close()
+
 	entitiesDescriptors, err := getEntityDescriptors(entityURL, ukfedCert)
 	if err != nil {
 		log.Fatal("cannot download entity descriptors", err)
 		return
 	}
 
-	conn, err := amqp.Dial(os.Getenv("QUEUE_CONN"))
-	if err != nil {
-		log.Fatal("cannot connect to queue", err)
-		return
-	}
-
-	defer conn.Close()
-
-	channel, err := conn.Channel()
-	if err != nil {
-		log.Fatal("cannot create channel in queue", err)
-		return
-	}
-
-	queue, err := createQueue(channel)
-	if err != nil {
-		log.Fatal("cannot create queue")
-		return
-	}
+	c := session.DB("fedproxy").C("entityDescriptors")
 
 	for _, entityDescriptor := range entitiesDescriptors.EntityDescriptor {
-		entityID := entityDescriptor.EntityID
 		entityDescriptorXML, _ := marshallEntityDescriptor(entityDescriptor)
 		checksum := calcChecksum(entityDescriptorXML)
 
-		ingestJob := &models.IngestJob{
-			EntityID: entityID,
-			XML:      entityDescriptorXML,
-			Checksum: checksum,
-		}
+		entityDescriptor.Checksum = checksum
+		entityDescriptor.FederationID = entityURL
 
-		err = publishMessage(ingestJob, channel, queue.Name)
-
-		if err != nil {
-			log.Fatal("cannot publish message", err)
+		if err = c.Insert(&entityDescriptor); err != nil {
+			log.Fatal("cannot store entity descriptor", err)
+			continue
 		}
 	}
 
