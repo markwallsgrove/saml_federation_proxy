@@ -27,9 +27,10 @@ webui:
     image: "webui:latest"
     ports:
         - "8080:8080"
+    links:
+        - mongodb
 mongodb:
     image: mongo:latest
-    container_name: "mongodb"
     environment:
       - MONGO_DATA_DIR=/data/db
       - MONGO_LOG_DIR=/dev/null
