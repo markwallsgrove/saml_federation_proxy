@@ -78,7 +78,7 @@ func getEntityDescriptors(entityURL string, pem []byte) (*models.EntitiesDescrip
 	doc, err := verifySignature(buff, pem)
 
 	if err != nil {
-		log.Fatalln("signature error:", err)
+		log.Fatalln("signature error", err)
 		return nil, err
 	}
 
@@ -147,6 +147,8 @@ Yq7dENJce7lO9yE=
 			log.Fatal("cannot store entity descriptor", err)
 			continue
 		}
+
+		log.Printf("imported %s from %s", entityDescriptor.EntityID, entityDescriptor.FederationID)
 	}
 
 	log.Println("fin.")
