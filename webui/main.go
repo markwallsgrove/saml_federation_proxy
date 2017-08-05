@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
 
@@ -15,38 +17,41 @@ import (
 type mongoHandler func(http.ResponseWriter, *http.Request, *mgo.Session) interface{}
 type handler func(http.ResponseWriter, *http.Request)
 
+func notFoundError(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusNotFound)
+}
+
 func handleError(err error, w http.ResponseWriter) {
 	if err == mgo.ErrNotFound {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 - Not Found"))
+		notFoundError(w)
 	} else if err != nil {
 		log.WithField("err", err).Error("api error")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("500 - Something bad happened!"))
 	}
 }
 
-func apiEnableEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
-	c := mongoSession.DB("fedproxy").C("entityDescriptors")
-	en := getString(r, "enabled", "false") == "true"
-	id := getString(r, "id", "")
+// func apiEnableEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
+// 	c := mongoSession.DB("fedproxy").C("entityDescriptors")
+// 	en := getString(r, "enabled", "false") == "true"
+// 	id := getString(r, "id", "")
 
-	qry := bson.M{"entityid": id}
-	change := mgo.Change{
-		Update:    bson.M{"$set": bson.M{"enabled": en}},
-		ReturnNew: true,
-	}
+// 	qry := bson.M{"entityid": id}
+// 	change := mgo.Change{
+// 		Update:    bson.M{"$set": bson.M{"enabled": en}},
+// 		ReturnNew: true,
+// 	}
 
-	var ed models.EntityDescriptor
-	_, err := c.Find(qry).Limit(1).Apply(change, &ed)
+// 	var ed models.EntityDescriptor
+// 	_, err := c.Find(qry).Limit(1).Apply(change, &ed)
 
-	handleError(err, w)
-	return ed
-}
+// 	handleError(err, w)
+// 	return ed
+// }
 
 func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
 	c := mongoSession.DB("fedproxy").C("entityDescriptors")
-	id := getString(r, "id", "")
+	vars := mux.Vars(r)
+	id := vars["id"]
 
 	if id == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -62,23 +67,41 @@ func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSes
 	return entityDescriptor
 }
 
-func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
-	c := mongoSession.DB("fedproxy").C("entityDescriptors")
+func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
 	os := getInt(r, "offset", 0, 1000000, 0)
 	lmt := getInt(r, "limit", 1, 100, 10)
 
-	// TODO: skip & limit is slow with large amount of data
-	// TODO: not returning .Enabled :(
-	var entityDescriptors []models.EntityDescriptor
-	err := c.Find(nil).Sort("-_id").Skip(os).Limit(lmt).All(&entityDescriptors)
-
-	for _, entityDescriptor := range entityDescriptors {
-		x, _ := json.Marshal(entityDescriptor)
-		log.WithField("EntityDescriptor", string(x)).Debug("entity descriptor")
+	entityDescriptors, err := models.PaginateEntityDescriptors(os, lmt, session)
+	if err != nil {
+		handleError(err, w)
+		return nil
 	}
 
-	handleError(err, w)
 	return entityDescriptors
+}
+
+func apiExportsHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+	exports, err := models.GetExports(session)
+	handleError(err, w)
+	return exports
+}
+
+func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+	var e models.Export
+	err := models.Unmarshall(r.Body, &e)
+
+	if err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	err = models.InsertExport(e, session)
+	if err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	return nil
 }
 
 func index(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
@@ -99,12 +122,25 @@ func main() {
 
 	fs := http.FileServer(http.Dir("/public"))
 
-	http.Handle("/public/", http.StripPrefix("/public/", fs))
-	http.HandleFunc("/", htmlWrap(index, session))
-	http.HandleFunc("/1/api/entitydescriptors", jsonWrap(apiEntityDescriptorsHandler, session))
-	http.HandleFunc("/1/api/entitydescriptor", jsonWrap(apiEntityDescriptorHandler, session))
-	http.HandleFunc("/1/api/entityDescriptor/toggle", jsonWrap(apiEnableEntityDescriptorHandler, session))
-	http.ListenAndServe(":8080", nil)
+	r := mux.NewRouter()
+	// r.Handle("/public/", http.StripPrefix("/public/", fs))
+	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fs))
+
+	r.HandleFunc("/", htmlWrap(index, session)).Methods("GET")
+	r.HandleFunc("/1/api/entitydescriptors", jsonWrap(apiEntityDescriptorsHandler, session)).Methods("GET")
+	r.HandleFunc("/1/api/entitydescriptor/{id}", jsonWrap(apiEntityDescriptorHandler, session)).Methods("GET")
+	r.HandleFunc("/1/api/exports", jsonWrap(apiExportsHandler, session)).Methods("GET")
+	r.HandleFunc("/1/api/exports", jsonWrap(apiExportCreationHandler, session)).Methods("POST")
+	// r.HandleFunc("/1/api/entityDescriptor/{id}/toggle", jsonWrap(apiEnableEntityDescriptorHandler, session))
+
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         "0.0.0.0:8080",
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
 
 func getString(r *http.Request, name string, def string) string {

@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import axios from 'axios';
 
+import 'bootstrap/dist/css/bootstrap.css';
+import './css/style.css';
+
 function paginateEntityDescriptors() {
     const url = '/1/api/entitydescriptors';
 
@@ -20,15 +23,9 @@ function entityDescriptor(id) {
     });
 }
 
-function toggleEntityDescriptor(id, enabled) {
-    const url = '/1/api/entityDescriptor/toggle' +
-        '?enabled=' + enabled +
-        '&id=' + id;
-
-    return axios.post(url).then(resp => {
-        // TODO: error?
-        return resp.data;
-    });
+function createExport(name) {
+    const url = `/1/api/exports`;
+    return axios.post(url);
 }
 
 class EntityDescriptor extends React.Component {
@@ -37,15 +34,10 @@ class EntityDescriptor extends React.Component {
         this.state = {};
     }
 
-    toggleEntityDescriptor() {
-        toggleEntityDescriptor(this.props.id, !this.props.enabled).then(ed => {
-            this.props.entityChanged(ed);
-        });
-    }
-
     render() {
-        const entityChanged = this.toggleEntityDescriptor.bind(this);
-        return (<li onClick={entityChanged}>{this.props.name}(enabled={this.props.enabled})</li>);
+        // const entityChanged = this.toggleEntityDescriptor.bind(this);
+        // onClick={entityChanged}
+        return (<li >{this.props.name}(enabled={this.props.enabled})</li>);
     }
 }
 
