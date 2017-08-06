@@ -21,6 +21,10 @@ func notFoundError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
+func badRequest(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
+}
+
 func handleError(err error, w http.ResponseWriter) {
 	if err == mgo.ErrNotFound {
 		notFoundError(w)
@@ -104,6 +108,26 @@ func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, session *m
 	return nil
 }
 
+func apiPatchExportHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+	vars := mux.Vars(r)
+	exportName := vars["id"]
+
+	var patch models.ExportPatch
+	err := models.Unmarshall(r.Body, &patch)
+	if err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	export, err := models.PatchExport(exportName, patch, session)
+	if err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	return export
+}
+
 func index(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
 	http.ServeFile(w, r, "/public/index.html")
 	return nil
@@ -123,7 +147,6 @@ func main() {
 	fs := http.FileServer(http.Dir("/public"))
 
 	r := mux.NewRouter()
-	// r.Handle("/public/", http.StripPrefix("/public/", fs))
 	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fs))
 
 	r.HandleFunc("/", htmlWrap(index, session)).Methods("GET")
@@ -131,7 +154,7 @@ func main() {
 	r.HandleFunc("/1/api/entitydescriptor/{id}", jsonWrap(apiEntityDescriptorHandler, session)).Methods("GET")
 	r.HandleFunc("/1/api/exports", jsonWrap(apiExportsHandler, session)).Methods("GET")
 	r.HandleFunc("/1/api/exports", jsonWrap(apiExportCreationHandler, session)).Methods("POST")
-	// r.HandleFunc("/1/api/entityDescriptor/{id}/toggle", jsonWrap(apiEnableEntityDescriptorHandler, session))
+	r.HandleFunc("/1/api/exports/{id}", jsonWrap(apiPatchExportHandler, session)).Methods("PATCH")
 
 	srv := &http.Server{
 		Handler:      r,
