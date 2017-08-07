@@ -83,9 +83,13 @@ class ExportEntityDescriptors extends React.Component {
     constructor(props) {
         super(props);
 
+        // TODO: should a msg to create a export if none exist
         this.state = {
             entitydescriptors: [],
-            exp: {},
+            exp: {
+                EntityDescriptors: [],
+                Name: '',
+            },
         };
 
         EE.on('show-export-event', this.loadExportEvent, this);

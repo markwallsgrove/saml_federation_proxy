@@ -92,8 +92,10 @@ WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
 COPY . .
 WORKDIR export_worker
 RUN go-wrapper download
-RUN CGO_ENABLED=0 go build -tags static -ldflags '-s -extldflags "-static"' -o /bin/export_worker main.go
+RUN go build -tags static -ldflags '-s -extldflags "-static"'  -o /bin/export_worker main.go
 
 FROM ubuntu
+COPY export_worker/saml.pem /saml.pem
+COPY export_worker/saml.crt /saml.crt
 COPY --from=build-env /bin/export_worker /bin/
 CMD ["/bin/export_worker"]

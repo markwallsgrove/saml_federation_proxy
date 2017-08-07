@@ -40,6 +40,7 @@ module.exports = {
     //   minRatio: 0
     // })
   ],
+  devtool: 'inline-source-map',
   module: {
     loaders: [
       {

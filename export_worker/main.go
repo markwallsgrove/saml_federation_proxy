@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"encoding/xml"
+	"io/ioutil"
 	"os"
 
 	mgo "gopkg.in/mgo.v2"
 
+	xmlsec "github.com/crewjam/go-xmlsec"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
 
@@ -19,7 +21,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func task(msgs <-chan amqp.Delivery, session *mgo.Session, forever chan bool) {
+func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever chan bool) {
 	for d := range msgs {
 		var exportTask models.ExportTask
 		err := models.Unmarshall(bytes.NewReader(d.Body), &exportTask)
@@ -36,29 +38,50 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, forever chan bool) {
 		)
 
 		entitiesDescriptor := models.EntitiesDescriptor{
-			XmlnsDs:          "http://www.w3.org/2000/09/xmldsig#",
-			XmlnsIdpdisc:     "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol",
-			XmlnsInit:        "urn:oasis:names:tc:SAML:profiles:SSO:request-init",
-			XmlnsMdattr:      "urn:oasis:names:tc:SAML:metadata:attribute",
-			XmlnsMdrpi:       "urn:oasis:names:tc:SAML:metadata:rpi",
-			XmlnsMdui:        "urn:oasis:names:tc:SAML:metadata:ui",
-			XmlnsRemd:        "http://refeds.org/metadata",
-			XmlnsSaml:        "urn:oasis:names:tc:SAML:2.0:assertion",
-			XmlnsShibmd:      "urn:mace:shibboleth:metadata:1.0",
-			XmlnsXsi:         "http://www.w3.org/2001/XMLSchema-instance",
-			Xmlns:            "urn:oasis:names:tc:SAML:2.0:metadata",
-			ID:               "_",
+			// XmlnsDs:      "http://www.w3.org/2000/09/xmldsig#",
+			// XmlnsIdpdisc: "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol",
+			// XmlnsInit:    "urn:oasis:names:tc:SAML:profiles:SSO:request-init",
+			// XmlnsMdattr:  "urn:oasis:names:tc:SAML:metadata:attribute",
+			// XmlnsMdrpi:   "urn:oasis:names:tc:SAML:metadata:rpi",
+			// XmlnsMdui:    "urn:oasis:names:tc:SAML:metadata:ui",
+			// XmlnsRemd:    "http://refeds.org/metadata",
+			// XmlnsSaml:    "urn:oasis:names:tc:SAML:2.0:assertion",
+			// XmlnsShibmd:  "urn:mace:shibboleth:metadata:1.0",
+			// XmlnsXsi:     "http://www.w3.org/2001/XMLSchema-instance",
+			// Xmlns:            "urn:oasis:names:tc:SAML:2.0:metadata",
+			ID:               "jlsdfjklfdjkl544534",
 			Name:             "https://fedproxy.com",
 			ValidUntil:       "2017-12-254T01:01:01Z",
 			EntityDescriptor: entityDescriptors,
 		}
 
-		xmlEncoded, err := xml.MarshalIndent(entitiesDescriptor, "  ", "    ")
+		// xmlEncoded, err := xml.MarshalIndent(entitiesDescriptor, "  ", "    ")
+		xmlEncoded, err := xml.Marshal(entitiesDescriptor)
 		if err != nil {
-			log.WithField("err", err).Error("cannot encode entities descriptor")
+			log.WithError(err).Error("cannot encode entities descriptor")
 			d.Reject(true)
 			continue
 		}
+
+		// TODO: cannot find start node
+		_, err = xmlsec.Sign(key, xmlEncoded, xmlsec.SignatureOptions{
+			XMLID: []xmlsec.XMLIDOption{{
+				ElementName:      "EntitiesDescriptor",
+				ElementNamespace: "urn:oasis:names:tc:SAML:2.0:metadata",
+				AttributeName:    "ID",
+			}},
+		})
+
+		if err != nil {
+			log.WithError(err).Error("cannot sign entities descriptor")
+			// d.Reject(false)
+			// continue
+		}
+
+		log.WithFields(log.Fields{
+			"xml": string(xmlEncoded),
+			"key": string(key),
+		}).Info("signed xml")
 
 		exportResult := models.ExportResult{
 			Name:    exportTask.Name,
@@ -121,9 +144,12 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
+	key, err := ioutil.ReadFile("/saml.pem")
+	failOnError(err, "Failed to load signing key")
+
 	forever := make(chan bool)
 
-	go task(msgs, session, forever)
+	go task(msgs, session, key, forever)
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
