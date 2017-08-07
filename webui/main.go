@@ -3,19 +3,27 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
+	"github.com/streadway/amqp"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
-type mongoHandler func(http.ResponseWriter, *http.Request, *mgo.Session) interface{}
+type xmlContextHandler func(http.ResponseWriter, *http.Request, *Context) []byte
+type contextHandler func(http.ResponseWriter, *http.Request, *Context) interface{}
 type handler func(http.ResponseWriter, *http.Request)
+
+type Context struct {
+	Session *mgo.Session
+	Channel *amqp.Channel
+}
 
 func notFoundError(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
@@ -34,26 +42,8 @@ func handleError(err error, w http.ResponseWriter) {
 	}
 }
 
-// func apiEnableEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
-// 	c := mongoSession.DB("fedproxy").C("entityDescriptors")
-// 	en := getString(r, "enabled", "false") == "true"
-// 	id := getString(r, "id", "")
-
-// 	qry := bson.M{"entityid": id}
-// 	change := mgo.Change{
-// 		Update:    bson.M{"$set": bson.M{"enabled": en}},
-// 		ReturnNew: true,
-// 	}
-
-// 	var ed models.EntityDescriptor
-// 	_, err := c.Find(qry).Limit(1).Apply(change, &ed)
-
-// 	handleError(err, w)
-// 	return ed
-// }
-
-func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
-	c := mongoSession.DB("fedproxy").C("entityDescriptors")
+func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
+	c := context.Session.DB("fedproxy").C("entityDescriptors")
 	vars := mux.Vars(r)
 	id := vars["id"]
 
@@ -71,11 +61,11 @@ func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, mongoSes
 	return entityDescriptor
 }
 
-func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
 	os := getInt(r, "offset", 0, 1000000, 0)
 	lmt := getInt(r, "limit", 1, 100, 10)
 
-	entityDescriptors, err := models.PaginateEntityDescriptors(os, lmt, session)
+	entityDescriptors, err := models.PaginateEntityDescriptors(os, lmt, context.Session)
 	if err != nil {
 		handleError(err, w)
 		return nil
@@ -84,13 +74,13 @@ func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, session
 	return entityDescriptors
 }
 
-func apiExportsHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
-	exports, err := models.GetExports(session)
+func apiExportsHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
+	exports, err := models.GetExports(context.Session)
 	handleError(err, w)
 	return exports
 }
 
-func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
 	var e models.Export
 	err := models.Unmarshall(r.Body, &e)
 
@@ -99,7 +89,7 @@ func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, session *m
 		return nil
 	}
 
-	err = models.InsertExport(e, session)
+	err = models.InsertExport(e, context.Session)
 	if err != nil {
 		handleError(err, w)
 		return nil
@@ -108,19 +98,28 @@ func apiExportCreationHandler(w http.ResponseWriter, r *http.Request, session *m
 	return nil
 }
 
-func apiPatchExportHandler(w http.ResponseWriter, r *http.Request, session *mgo.Session) interface{} {
+func apiPatchExportHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
 	vars := mux.Vars(r)
 	exportName := vars["id"]
 
 	var patch models.ExportPatch
-	err := models.Unmarshall(r.Body, &patch)
+	if err := models.Unmarshall(r.Body, &patch); err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	export, err := models.PatchExport(exportName, patch, context.Session)
 	if err != nil {
 		handleError(err, w)
 		return nil
 	}
 
-	export, err := models.PatchExport(exportName, patch, session)
-	if err != nil {
+	exportTask := models.ExportTask{
+		Name:              exportName,
+		EntityDescriptors: export.EntityDescriptors,
+	}
+
+	if err = models.QueueExportTask(exportTask, context.Channel); err != nil {
 		handleError(err, w)
 		return nil
 	}
@@ -128,7 +127,21 @@ func apiPatchExportHandler(w http.ResponseWriter, r *http.Request, session *mgo.
 	return export
 }
 
-func index(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) interface{} {
+func apiExportPayloadHandler(w http.ResponseWriter, r *http.Request, context *Context) []byte {
+	vars := mux.Vars(r)
+	exportName := vars["id"]
+
+	exportResult, err := models.FindExportResult(exportName, context.Session)
+
+	if err != nil {
+		handleError(err, w)
+		return nil
+	}
+
+	return []byte(exportResult.Payload)
+}
+
+func index(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
 	http.ServeFile(w, r, "/public/index.html")
 	return nil
 }
@@ -136,7 +149,8 @@ func index(w http.ResponseWriter, r *http.Request, mongoSession *mgo.Session) in
 func main() {
 	log.SetLevel(log.DebugLevel)
 
-	session, err := mgo.Dial("mongodb")
+	mongoConn := os.Getenv("MONGO_CONN")
+	session, err := mgo.Dial(mongoConn)
 	if err != nil {
 		log.WithField("err", err).Error("cannot connect to mongo")
 		return
@@ -144,17 +158,40 @@ func main() {
 
 	defer session.Close()
 
+	queueConn := os.Getenv("QUEUE_CONN")
+	conn, err := amqp.Dial(queueConn)
+	if err != nil {
+		log.WithError(err).Error("cannot connect to amqp")
+		return
+	}
+
+	defer conn.Close()
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.WithError(err).Error("cannot connect to amqp channel")
+		return
+	}
+
+	defer ch.Close()
+
+	context := &Context{
+		Session: session,
+		Channel: ch,
+	}
+
 	fs := http.FileServer(http.Dir("/public"))
 
 	r := mux.NewRouter()
+	r.HandleFunc("/", htmlWrap(index, context)).Methods("GET")
 	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", fs))
 
-	r.HandleFunc("/", htmlWrap(index, session)).Methods("GET")
-	r.HandleFunc("/1/api/entitydescriptors", jsonWrap(apiEntityDescriptorsHandler, session)).Methods("GET")
-	r.HandleFunc("/1/api/entitydescriptor/{id}", jsonWrap(apiEntityDescriptorHandler, session)).Methods("GET")
-	r.HandleFunc("/1/api/exports", jsonWrap(apiExportsHandler, session)).Methods("GET")
-	r.HandleFunc("/1/api/exports", jsonWrap(apiExportCreationHandler, session)).Methods("POST")
-	r.HandleFunc("/1/api/exports/{id}", jsonWrap(apiPatchExportHandler, session)).Methods("PATCH")
+	r.HandleFunc("/1/api/entitydescriptors", jsonWrap(apiEntityDescriptorsHandler, context)).Methods("GET")
+	r.HandleFunc("/1/api/entitydescriptor/{id}", jsonWrap(apiEntityDescriptorHandler, context)).Methods("GET")
+	r.HandleFunc("/1/api/exports", jsonWrap(apiExportsHandler, context)).Methods("GET")
+	r.HandleFunc("/1/api/exports", jsonWrap(apiExportCreationHandler, context)).Methods("POST")
+	r.HandleFunc("/1/api/exports/{id}", jsonWrap(apiPatchExportHandler, context)).Methods("PATCH")
+	r.HandleFunc("/1/api/exports/{id}/payload", xmlWrap(apiExportPayloadHandler, context)).Methods("GET")
 
 	srv := &http.Server{
 		Handler:      r,
@@ -184,19 +221,27 @@ func getInt(r *http.Request, name string, min int, max int, def int) int {
 	return num
 }
 
-func htmlWrap(t mongoHandler, s *mgo.Session) handler {
+func htmlWrap(t contextHandler, c *Context) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		t(w, r, s)
+		t(w, r, c)
 	}
 }
 
-func jsonWrap(t mongoHandler, s *mgo.Session) handler {
+func jsonWrap(t contextHandler, c *Context) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		rst := t(w, r, s)
+		rst := t(w, r, c)
 		if rst != nil {
 			json.NewEncoder(w).Encode(rst)
 		}
+	}
+}
+
+func xmlWrap(t xmlContextHandler, c *Context) handler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+		rst := t(w, r, c)
+		w.Write(rst)
 	}
 }

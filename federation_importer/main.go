@@ -92,6 +92,7 @@ func getEntityDescriptors(entityURL string, pem []byte) (*models.EntitiesDescrip
 }
 
 func main() {
+	// TODO: pull from queue
 	// TODO: move to db
 	ukfedCert := []byte(`-----BEGIN CERTIFICATE-----
 MIIDxzCCAq+gAwIBAgIJAOwuoY8tsvYGMA0GCSqGSIb3DQEBCwUAMHoxCzAJBgNV
@@ -143,6 +144,7 @@ Yq7dENJce7lO9yE=
 		entityDescriptor.Checksum = checksum
 		entityDescriptor.FederationID = entityURL
 
+		// TODO: updateOrModify
 		if err = c.Insert(&entityDescriptor); err != nil {
 			log.Fatal("cannot store entity descriptor", err)
 			continue

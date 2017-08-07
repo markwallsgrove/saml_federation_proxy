@@ -129,14 +129,15 @@ class ExportEntityDescriptors extends React.Component {
                             ? 'glyphicon glyphicon-remove-circle'
                             : 'glyphicon glyphicon-ok-circle';
                         const btnClass = isActive ? 'btn-danger' : 'btn-success';
+                        const btnText = isActive ? 'remove' : 'add';
                         const toggleEntityId = this.toggleEdOnExport.bind(this, ed.EntityID, isActive);
 
                         return <Panel header={ed.EntityID} eventKey={i} className={statusClass}>
                             EntityID: {ed.EntityID}
                             <br />
                             Federtion: {ed.FederationID}
-                            <br />
-                            <Button onClick={toggleEntityId} className={btnClass}><Glyphicon glyph={statusIcon} /></Button>
+                            <br /><br />
+                            <Button onClick={toggleEntityId} className={btnClass}><Glyphicon glyph={statusIcon} /> {btnText}</Button>
                         </Panel>
                     })}
                 </Accordion>

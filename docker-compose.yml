@@ -11,10 +11,6 @@ rabbit:
     - "5672:5672"
   labels:
     NAME: "rabbitmq"
-  # volumes:
-    # - "./enabled_plugins:/etc/rabbitmq/enabled_plugins"
-    #- "./rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro"
-    #- "./autocluster-0.4.1.ez:/usr/lib/rabbitmq/lib/rabbitmq_server-3.5.5/plugins/autocluster-0.4.1.e
 federation_importer:
     image: "federation_importer:latest"
     environment:
@@ -23,11 +19,22 @@ federation_importer:
     links:
         - rabbit
         - mongodb
+export_worker:
+    image: "export_worker:latest"
+    environment:
+        QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
+    links:
+        - rabbit
+        - mongodb
 webui:
     image: "webui:latest"
+    environment:
+        QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
+        MONGO_CONN: "mongodb"
     ports:
         - "8080:8080"
     links:
+        - rabbit
         - mongodb
 mongodb:
     image: mongo:latest
