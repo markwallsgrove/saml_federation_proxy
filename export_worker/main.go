@@ -5,10 +5,12 @@ import (
 	"encoding/xml"
 	"io/ioutil"
 	"os"
+	"time"
 
 	mgo "gopkg.in/mgo.v2"
 
 	xmlsec "github.com/crewjam/go-xmlsec"
+	"github.com/crewjam/saml"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
 
@@ -37,7 +39,11 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 			session,
 		)
 
-		entitiesDescriptor := models.EntitiesDescriptor{
+		id := "jlsdfjklfdjkl544534"
+		name := "https://fedproxy.com"
+		validUntil := time.Now().Add(time.Duration(24 * time.Hour))
+
+		entitiesDescriptor := saml.EntitiesDescriptor{
 			// XmlnsDs:      "http://www.w3.org/2000/09/xmldsig#",
 			// XmlnsIdpdisc: "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol",
 			// XmlnsInit:    "urn:oasis:names:tc:SAML:profiles:SSO:request-init",
@@ -49,10 +55,10 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 			// XmlnsShibmd:  "urn:mace:shibboleth:metadata:1.0",
 			// XmlnsXsi:     "http://www.w3.org/2001/XMLSchema-instance",
 			// Xmlns:            "urn:oasis:names:tc:SAML:2.0:metadata",
-			ID:               "jlsdfjklfdjkl544534",
-			Name:             "https://fedproxy.com",
-			ValidUntil:       "2017-12-254T01:01:01Z",
-			EntityDescriptor: entityDescriptors,
+			ID:                &id,
+			Name:              &name,
+			ValidUntil:        &validUntil,
+			EntityDescriptors: entityDescriptors,
 		}
 
 		// xmlEncoded, err := xml.MarshalIndent(entitiesDescriptor, "  ", "    ")

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	saml "github.com/crewjam/saml"
 	"github.com/gorilla/mux"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
@@ -53,7 +54,7 @@ func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, context 
 		return nil
 	}
 
-	var entityDescriptor models.EntityDescriptor
+	var entityDescriptor saml.EntityDescriptor
 	filter := bson.M{"entityid": id}
 	err := c.Find(filter).One(&entityDescriptor)
 

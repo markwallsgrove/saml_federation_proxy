@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/crewjam/saml"
 	"gopkg.in/mgo.v2"
 
 	"github.com/crewjam/go-xmlsec"
-	"github.com/markwallsgrove/saml_federation_proxy/models"
 )
 
 func downloadFile(url string) (io.ReadCloser, error) {
@@ -45,13 +45,13 @@ func verifySignature(buff io.ReadCloser, key []byte) ([]byte, error) {
 	return doc, err
 }
 
-func unmarshallXML(buff []byte) (*models.EntitiesDescriptor, error) {
-	entitiesDescriptor := new(models.EntitiesDescriptor)
+func unmarshallXML(buff []byte) (*saml.EntitiesDescriptor, error) {
+	entitiesDescriptor := new(saml.EntitiesDescriptor)
 	err := xml.Unmarshal(buff, entitiesDescriptor)
 	return entitiesDescriptor, err
 }
 
-func marshallEntityDescriptor(entityDescriptor *models.EntityDescriptor) ([]byte, error) {
+func marshallEntityDescriptor(entityDescriptor saml.EntityDescriptor) ([]byte, error) {
 	bytes, err := xml.Marshal(entityDescriptor)
 
 	if err != nil {
@@ -67,7 +67,7 @@ func calcChecksum(bytes []byte) []byte {
 	return hasher.Sum(nil)
 }
 
-func getEntityDescriptors(entityURL string, pem []byte) (*models.EntitiesDescriptor, error) {
+func getEntityDescriptors(entityURL string, pem []byte) (*saml.EntitiesDescriptor, error) {
 	buff, err := downloadFile(entityURL)
 
 	if err != nil {
@@ -137,12 +137,12 @@ Yq7dENJce7lO9yE=
 
 	c := session.DB("fedproxy").C("entityDescriptors")
 
-	for _, entityDescriptor := range entitiesDescriptors.EntityDescriptor {
-		entityDescriptorXML, _ := marshallEntityDescriptor(entityDescriptor)
-		checksum := calcChecksum(entityDescriptorXML)
+	for _, entityDescriptor := range entitiesDescriptors.EntityDescriptors {
+		// entityDescriptorXML, _ := marshallEntityDescriptor(entityDescriptor)
+		// checksum := calcChecksum(entityDescriptorXML)
 
-		entityDescriptor.Checksum = checksum
-		entityDescriptor.FederationID = entityURL
+		// entityDescriptor.Checksum = checksum
+		// entityDescriptor.FederationID = entityURL
 
 		// TODO: updateOrModify
 		if err = c.Insert(&entityDescriptor); err != nil {
@@ -150,7 +150,7 @@ Yq7dENJce7lO9yE=
 			continue
 		}
 
-		log.Printf("imported %s from %s", entityDescriptor.EntityID, entityDescriptor.FederationID)
+		log.Printf("imported %s from %s", entityDescriptor.EntityID)
 	}
 
 	log.Println("fin.")

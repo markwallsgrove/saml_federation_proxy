@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	saml "github.com/crewjam/saml"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -28,21 +29,21 @@ func FindExportResult(name string, session *mgo.Session) (ExportResult, error) {
 	return exportResult, err
 }
 
-func FindEntityDescriporsByName(names []string, session *mgo.Session) ([]*EntityDescriptor, error) {
+func FindEntityDescriporsByName(names []string, session *mgo.Session) ([]*saml.EntityDescriptor, error) {
 	c := session.DB("fedproxy").C("entityDescriptors")
 
-	var entityDescriptors []*EntityDescriptor
+	var entityDescriptors []*saml.EntityDescriptor
 
 	err := c.Find(bson.M{"entityid": bson.M{"$in": names}}).All(&entityDescriptors)
 	return entityDescriptors, err
 }
 
-func PaginateEntityDescriptors(os int, lmt int, session *mgo.Session) ([]EntityDescriptor, error) {
+func PaginateEntityDescriptors(os int, lmt int, session *mgo.Session) ([]saml.EntityDescriptor, error) {
 	// TODO: skip & limit is slow with large amount of data
 
 	c := session.DB("fedproxy").C("entityDescriptors")
 
-	var entityDescriptors []EntityDescriptor
+	var entityDescriptors []saml.EntityDescriptor
 	err := c.Find(nil).Sort("-_id").Skip(os).Limit(lmt).All(&entityDescriptors)
 	return entityDescriptors, err
 }
