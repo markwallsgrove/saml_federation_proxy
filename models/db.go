@@ -29,10 +29,10 @@ func FindExportResult(name string, session *mgo.Session) (ExportResult, error) {
 	return exportResult, err
 }
 
-func FindEntityDescriporsByName(names []string, session *mgo.Session) ([]*saml.EntityDescriptor, error) {
+func FindEntityDescriporsByName(names []string, session *mgo.Session) ([]saml.EntityDescriptor, error) {
 	c := session.DB("fedproxy").C("entityDescriptors")
 
-	var entityDescriptors []*saml.EntityDescriptor
+	var entityDescriptors []saml.EntityDescriptor
 
 	err := c.Find(bson.M{"entityid": bson.M{"$in": names}}).All(&entityDescriptors)
 	return entityDescriptors, err

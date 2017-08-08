@@ -89,8 +89,10 @@ RUN curl -sL http://www.aleksey.com/xmlsec/download/xmlsec1-1.2.22.tar.gz | tar 
 
 RUN mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy/export_worker
 WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy/export_worker
-COPY Gopkg.lock .
-COPY Gopkg.toml .
+COPY export_worker/Gopkg.lock .
+COPY export_worker/Gopkg.toml .
+COPY export_worker/vendor .
+RUN go-wrapper download -u github.com/golang/dep/cmd/dep
 RUN go-wrapper install github.com/golang/dep/cmd/dep
 RUN dep ensure
 WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
