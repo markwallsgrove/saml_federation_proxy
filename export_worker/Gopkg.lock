@@ -22,15 +22,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/ma314smith/signedxml"
-  packages = ["."]
-  revision = "9781f7e0c2f19433662ccf1d222bec8b293597bd"
-
-[[projects]]
-  branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "9d7a3d76615825b5e91737300d2cd79e52ec5a01"
+  revision = "90fa4b5048e85d4381fc76526d3074ec01ec0a7e"
 
 [[projects]]
   branch = "master"
@@ -71,6 +65,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ffd3e6f18ed9bb04a9b05433d8ed47a6a4744a13b40e45a23b868f766182b265"
+  inputs-digest = "5ad557d61bc9c2f61938790ac9a449af24570724790a9ec1ce94cef2135b33b9"
   solver-name = "gps-cdcl"
   solver-version = 1
