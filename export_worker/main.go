@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/x509"
+	"encoding/pem"
 	"encoding/xml"
 	"io/ioutil"
 	"os"
@@ -9,8 +11,8 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
-	xmlsec "github.com/crewjam/go-xmlsec"
 	"github.com/crewjam/saml"
+	"github.com/ma314smith/signedxml"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	log "github.com/sirupsen/logrus"
 
@@ -70,18 +72,36 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 		}
 
 		// TODO: cannot find start node
-		_, err = xmlsec.Sign(key, xmlEncoded, xmlsec.SignatureOptions{
-			XMLID: []xmlsec.XMLIDOption{{
-				ElementName:      "EntitiesDescriptor",
-				ElementNamespace: "urn:oasis:names:tc:SAML:2.0:metadata",
-				AttributeName:    "ID",
-			}},
-		})
+		// _, err = xmlsec.Sign(key, xmlEncoded, xmlsec.SignatureOptions{
+		// 	XMLID: []xmlsec.XMLIDOption{{
+		// 		ElementName:      "EntitiesDescriptor",
+		// 		ElementNamespace: "urn:oasis:names:tc:SAML:2.0:metadata",
+		// 		AttributeName:    "ID",
+		// 	}},
+		// })
+		signer, err := signedxml.NewSigner(string(xmlEncoded))
 
 		if err != nil {
 			log.WithError(err).Error("cannot sign entities descriptor")
 			// d.Reject(false)
 			// continue
+		} else {
+			p, _ := pem.Decode(key)
+			if p == nil {
+				log.Error("no pem block found")
+			} else {
+				pk, err := x509.ParsePKCS1PrivateKey(p.Bytes)
+				if err != nil {
+					log.WithError(err).Error("cannot parse private key with pem bytes")
+				} else {
+					ep, err := signer.Sign(pk)
+					if err != nil {
+						log.WithError(err).Error("cannot sign xml")
+					} else {
+						log.WithField("payload", ep).Info("signed xml payload")
+					}
+				}
+			}
 		}
 
 		log.WithFields(log.Fields{

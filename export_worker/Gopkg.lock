@@ -8,22 +8,10 @@
   version = "v0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/crewjam/errset"
-  packages = ["."]
-  revision = "f78d65de925cf59a953184a376cbfe07cfe65e3d"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/crewjam/go-xmlsec"
-  packages = ["."]
-  revision = "1aa2f9374afac12f9864ced5babe8ff74427eed2"
-
-[[projects]]
   branch = "organization_namespace"
   name = "github.com/crewjam/saml"
   packages = [".","logger","xmlenc"]
-  revision = "54dac44de71c7f09b6f0d168aa190c381145052c"
+  revision = "cc37684d8621af967f08e8f688569fd5f57fbb82"
   source = "github.com/markwallsgrove/saml"
 
 [[projects]]
@@ -34,9 +22,15 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/ma314smith/signedxml"
+  packages = ["."]
+  revision = "9781f7e0c2f19433662ccf1d222bec8b293597bd"
+
+[[projects]]
+  branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "112afdaf2d6aa2aab61d5fd2aa749b0f338aa05a"
+  revision = "9d7a3d76615825b5e91737300d2cd79e52ec5a01"
 
 [[projects]]
   branch = "master"
@@ -77,6 +71,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "66efa23efb56032e42f4b63ad410967e9e5ed39ed507730be3a00dc565282d82"
+  inputs-digest = "ffd3e6f18ed9bb04a9b05433d8ed47a6a4744a13b40e45a23b868f766182b265"
   solver-name = "gps-cdcl"
   solver-version = 1
