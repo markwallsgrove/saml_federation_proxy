@@ -25,11 +25,16 @@
   branch = "master"
   name = "github.com/crewjam/go-xmlsec"
 
+# [[constraint]]
+#   name = "github.com/crewjam/saml"
+#   # version = "0.2.0"
+#   source = "github.com/markwallsgrove/saml"
+#   branch = "organization_namespace"
+
+
 [[constraint]]
   name = "github.com/crewjam/saml"
-  # version = "0.2.0"
-  source = "github.com/markwallsgrove/saml"
-  branch = "organization_namespace"
+  version = "0.2.0"
 
 [[constraint]]
   branch = "master"

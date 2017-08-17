@@ -87,11 +87,16 @@ RUN curl -sL http://www.aleksey.com/xmlsec/download/xmlsec1-1.2.22.tar.gz | tar 
 	make -C include install && \
 	make install-pkgconfigDATA
 
-RUN mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy
-WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
+RUN mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy/federation_importer
+WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy/federation_importer
+RUN go-wrapper download -u github.com/golang/dep/cmd/dep \
+    && go-wrapper install github.com/golang/dep/cmd/dep
+COPY federation_importer/Gopkg.lock federation_importer/Gopkg.toml federation_importer/vendor ./
+RUN dep ensure -vendor-only
+
+WORKDIR ../
 COPY . .
 WORKDIR federation_importer
-RUN go-wrapper download
 RUN go build -tags static -ldflags '-s -extldflags "-static"' -o /bin/federation_importer main.go
 
 # resulting image

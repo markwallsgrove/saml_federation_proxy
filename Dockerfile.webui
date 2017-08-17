@@ -27,5 +27,6 @@ RUN go-wrapper download && CGO_ENABLED=0 go build -a -ldflags '-s' -o /bin/webui
 FROM ubuntu
 COPY --from=go-build-env /bin/webui /bin
 COPY --from=webpack-build-env /workdir/public /public
+COPY webui/saml.crt /public/saml.crt
 CMD ["/bin/webui"]
 EXPOSE 8080

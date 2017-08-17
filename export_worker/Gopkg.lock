@@ -8,11 +8,10 @@
   version = "v0"
 
 [[projects]]
-  branch = "organization_namespace"
   name = "github.com/crewjam/saml"
   packages = [".","logger","xmlenc"]
-  revision = "cc37684d8621af967f08e8f688569fd5f57fbb82"
-  source = "github.com/markwallsgrove/saml"
+  revision = "6b5dd2d26974f7f5e59132ef5921fab7993794d7"
+  version = "0.2.0"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -24,7 +23,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "90fa4b5048e85d4381fc76526d3074ec01ec0a7e"
+  revision = "8133b8c3272d9aa9cdd0d28216975e93645c446c"
 
 [[projects]]
   branch = "master"
@@ -65,6 +64,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5ad557d61bc9c2f61938790ac9a449af24570724790a9ec1ce94cef2135b33b9"
+  inputs-digest = "b3503dbc7457feaa91343be4d786a383ffb59ba1323c670d3a79263fe52d6604"
   solver-name = "gps-cdcl"
   solver-version = 1
