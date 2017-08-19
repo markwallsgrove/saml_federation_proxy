@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "8133b8c3272d9aa9cdd0d28216975e93645c446c"
+  revision = "2fed851e2e9cd3b00331f8c06424e629feb1b405"
 
 [[projects]]
   branch = "master"
@@ -34,8 +34,8 @@
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "a3f95b5c423586578a4e099b11a46c2479628cac"
-  version = "1.0.2"
+  revision = "f006c2ac4710855cf0f916dd6b77acf6b048dc6e"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
@@ -46,14 +46,14 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["ripemd160"]
-  revision = "b176d7def5d71bdd214203491f89843ed217f420"
+  packages = ["ripemd160","ssh/terminal"]
+  revision = "eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "47bdb838cce8879fca08207206a5dfde2f2538bc"
+  packages = ["unix","windows"]
+  revision = "43e60d72a8e2bd92ee98319ba9a384a0e9837c08"
 
 [[projects]]
   branch = "v2"
