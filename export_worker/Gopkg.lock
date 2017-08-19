@@ -8,10 +8,10 @@
   version = "v0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/crewjam/saml"
   packages = [".","logger","xmlenc"]
-  revision = "6b5dd2d26974f7f5e59132ef5921fab7993794d7"
-  version = "0.2.0"
+  revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -64,6 +64,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b3503dbc7457feaa91343be4d786a383ffb59ba1323c670d3a79263fe52d6604"
+  inputs-digest = "cc2261604eb897ac2bd499f84180dea06003f6de431994870a544b02c513fbad"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"encoding/xml"
@@ -54,19 +54,6 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, ctx *dsig.SigningCont
 			continue
 		}
 
-		randomKeyStore := dsig.RandomKeyStoreForTest()
-		ctx := dsig.NewDefaultSigningContext(randomKeyStore)
-
-		_, certBytes, _ := randomKeyStore.GetKeyPair()
-		cert, err := x509.ParseCertificate(certBytes)
-		if err != nil {
-			log.WithError(err).Error("cannot parse new cert")
-		} else {
-			buf := bytes.NewBufferString("")
-			pem.Encode(buf, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-			log.WithField("cert", buf.String()).Info("cert")
-		}
-
 		entityDescriptors, err := models.FindEntityDescriporsByName(
 			exportTask.EntityDescriptors,
 			session,
@@ -90,54 +77,27 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, ctx *dsig.SigningCont
 			d.Reject(true)
 			continue
 		}
+		readXMLDoc := etree.NewDocument()
+		err = readXMLDoc.ReadFromBytes(xmlEncoded)
+		failOnError(err, "cannot parse xml")
 
-		doc := etree.NewDocument()
-		err = doc.ReadFromBytes(xmlEncoded) //TODO:
+		elementToSign := readXMLDoc.Root()
+		elementToSign.CreateAttr("ID", "id1234")
 
-		doc.CreateAttr("ID", id)
+		signedElement, err := ctx.SignEnveloped(elementToSign)
+		failOnError(err, "failed to sign envelop")
 
-		el := doc.Root()
+		var signedAssertionBuf []byte
+		newDoc := etree.NewDocument()
+		newDoc.SetRoot(signedElement)
+		signedAssertionBuf, err = newDoc.WriteToBytes()
+		failOnError(err, "failed to convert doc to bytes")
 
-		sig, err := ctx.ConstructSignature(el, true)
-		if err != nil {
-			log.WithError(err).Error("Cannot construct signature")
-			d.Reject(false)
-			continue
-		}
-
-		ret := el.Copy()
-		ret.Child = append(ret.Child, sig)
-		// ret.Child = append(ret.Child, nil)
-		// copy(ret.Child[1:], ret.Child[0:])
-		// ret.Child[0] = sig
-
-		doc.SetRoot(ret)
-
-		// // Sign the element
-		// signedElement, err := ctx.SignEnveloped(elementToSign)
-		// if err != nil {
-		// 	log.WithError(err).Error("cannot sign envelope")
-		// 	d.Reject(false)
-		// 	continue
-		// }
-
-		// Serialize the signed element. It is important not to modify the element
-		// after it has been signed - even pretty-printing the XML will invalidate
-		// the signature.
-		// doc.SetRoot(signedElement)
-
-		signedXML, err := doc.WriteToString()
-		if err != nil {
-			log.WithError(err).Error("cannot convert xml to string")
-			d.Reject(false)
-			continue
-		}
-
-		log.WithField("payload", signedXML).Info("signed xml")
+		log.WithField("payload", string(signedAssertionBuf)).Info("signed xml")
 
 		exportResult := models.ExportResult{
 			Name:    exportTask.Name,
-			Payload: string(signedXML),
+			Payload: string(signedAssertionBuf),
 		}
 
 		if err := models.UpdateExportResult(exportResult, session); err != nil {
@@ -199,45 +159,21 @@ func main() {
 	keyBytes, err := ioutil.ReadFile("/saml.pem")
 	failOnError(err, "Failed to load signing key")
 
-	key, err := parseRsaPrivateKeyFromPemStr(keyBytes)
-	failOnError(err, "Failed to parse RSA private key")
-
 	certBytes, err := ioutil.ReadFile("/saml.crt")
 	failOnError(err, "Failed to read certificate")
 
-	block, _ := pem.Decode(certBytes)
-	if block == nil {
-		failOnError(errors.New("¯\\_(ツ)_/¯"), "Failed to decode certificate")
-	}
+	keyPair, err := tls.X509KeyPair(certBytes, keyBytes)
+	failOnError(err, "invalided to load keypair")
 
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		failOnError(err, "failed to parse certificate")
-	}
+	keyStore := dsig.TLSCertKeyStore(keyPair)
 
-	// cert, err := tls.X509KeyPair(certBytes, keyBytes)
-	// failOnError(err, "Failed to load X509 key pair")
-
-	// TODO: is there something else other than tls package that can be used?
-	ks := &models.X509KeyStore{key, cert.Raw}
-
-	var ksp *dsig.X509KeyStore
-	ksp = new(dsig.X509KeyStore)
-	*ksp = ks
-
-	// Generate a key and self-signed certificate for signing
-	// randomKeyStore := dsig.RandomKeyStoreForTest()
-	ctx := &dsig.SigningContext{
-		Hash:          crypto.SHA256,
-		KeyStore:      *ksp,
-		IdAttribute:   dsig.DefaultIdAttr,
-		Prefix:        dsig.DefaultPrefix,
-		Canonicalizer: dsig.MakeC14N11Canonicalizer(),
-	}
+	signingContext := dsig.NewDefaultSigningContext(keyStore)
+	signingContext.Canonicalizer = dsig.MakeC14N10ExclusiveCanonicalizerWithPrefixList("")
+	err = signingContext.SetSignatureMethod(dsig.RSASHA256SignatureMethod)
 
 	forever := make(chan bool)
 
-	go task(msgs, session, ctx, forever)
+	go task(msgs, session, signingContext, forever)
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever

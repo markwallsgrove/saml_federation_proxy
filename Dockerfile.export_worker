@@ -7,7 +7,7 @@ WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy/export_worker
 RUN go-wrapper download -u github.com/golang/dep/cmd/dep \
     && go-wrapper install github.com/golang/dep/cmd/dep
 COPY export_worker/Gopkg.lock export_worker/Gopkg.toml export_worker/vendor ./
-RUN dep ensure -vendor-only
+RUN dep ensure -vendor-only; dep status
 WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
 COPY . .
 WORKDIR export_worker
