@@ -15,7 +15,6 @@ import (
 	mgo "gopkg.in/mgo.v2"
 
 	"github.com/beevik/etree"
-	"github.com/crewjam/saml"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
 	dsig "github.com/russellhaering/goxmldsig"
 	log "github.com/sirupsen/logrus"
@@ -63,7 +62,7 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, ctx *dsig.SigningCont
 		name := "https://fedproxy.com"
 		validUntil := time.Now().Add(time.Duration(24 * time.Hour))
 
-		entitiesDescriptor := saml.EntitiesDescriptor{
+		entitiesDescriptor := models.EntitiesDescriptor{
 			ID:                &id,
 			Name:              &name,
 			ValidUntil:        &validUntil,

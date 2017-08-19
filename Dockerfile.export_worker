@@ -1,13 +1,14 @@
 # build
-FROM golang:1.8-alpine AS build-env
+FROM golang:1.8.3-alpine3.6 AS build-env
 RUN apk update && apk upgrade && apk add --no-cache bash git openssh curl && \
     mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy/export_worker
 
 WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy/export_worker
 RUN go-wrapper download -u github.com/golang/dep/cmd/dep \
     && go-wrapper install github.com/golang/dep/cmd/dep
-COPY export_worker/Gopkg.lock export_worker/Gopkg.toml export_worker/vendor ./
-RUN dep ensure -vendor-only; dep status
+COPY export_worker/Gopkg.lock export_worker/Gopkg.toml  ./
+COPY export_worker/vendor ./vendor
+RUN ls; dep ensure --vendor-only -v
 WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy
 COPY . .
 WORKDIR export_worker
