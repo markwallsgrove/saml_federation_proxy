@@ -33,9 +33,8 @@
 
 
 [[constraint]]
+  revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
   name = "github.com/crewjam/saml"
-  # version = "0.2.0"
-  branch = "master"
 
 [[constraint]]
   branch = "master"

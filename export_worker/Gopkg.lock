@@ -23,7 +23,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "2fed851e2e9cd3b00331f8c06424e629feb1b405"
+  revision = "e86142a7db6064682f0f3e057fccf45e7e93015c"
 
 [[projects]]
   branch = "master"
@@ -64,6 +64,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc2261604eb897ac2bd499f84180dea06003f6de431994870a544b02c513fbad"
+  inputs-digest = "33a2af426a5f859fb38ed3d15dd1bcd89dedadb5f3863e36ef9ac3a646e69a05"
   solver-name = "gps-cdcl"
   solver-version = 1
