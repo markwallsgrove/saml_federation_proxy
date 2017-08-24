@@ -20,10 +20,10 @@
   revision = "1aa2f9374afac12f9864ced5babe8ff74427eed2"
 
 [[projects]]
-  branch = "master"
   name = "github.com/crewjam/saml"
   packages = [".","logger","xmlenc"]
-  revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
+  revision = "6b5dd2d26974f7f5e59132ef5921fab7993794d7"
+  version = "0.2.0"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "e86142a7db6064682f0f3e057fccf45e7e93015c"
+  revision = "02a30cbdf36d86ce0f2994990946443727123e6e"
 
 [[projects]]
   branch = "master"
@@ -65,7 +65,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "43e60d72a8e2bd92ee98319ba9a384a0e9837c08"
+  revision = "07c182904dbd53199946ba614a412c61d3c548f5"
 
 [[projects]]
   branch = "v2"
@@ -76,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "930e00319e0189a8349932ac07468b44b7fab6ec1c4bed5c7e98b8a7b3958dbc"
+  inputs-digest = "04025bca44dd49b37dbc6fccd2f97fef08281b046376dafcaca0e9697b1f300b"
   solver-name = "gps-cdcl"
   solver-version = 1
