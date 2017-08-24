@@ -9,6 +9,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/crewjam/errset"
+  packages = ["."]
+  revision = "f78d65de925cf59a953184a376cbfe07cfe65e3d"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/crewjam/go-xmlsec"
+  packages = ["."]
+  revision = "1aa2f9374afac12f9864ced5babe8ff74427eed2"
+
+[[projects]]
+  branch = "master"
   name = "github.com/crewjam/saml"
   packages = [".","logger","xmlenc"]
   revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
@@ -64,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "33a2af426a5f859fb38ed3d15dd1bcd89dedadb5f3863e36ef9ac3a646e69a05"
+  inputs-digest = "930e00319e0189a8349932ac07468b44b7fab6ec1c4bed5c7e98b8a7b3958dbc"
   solver-name = "gps-cdcl"
   solver-version = 1

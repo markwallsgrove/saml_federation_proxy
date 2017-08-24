@@ -19,12 +19,12 @@ var HTTPRedirectBinding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
 //
 // See http://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf §2.3.1
 type EntitiesDescriptor struct {
-	XMLName             xml.Name       `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntitiesDescriptor"`
-	ID                  *string        `xml:",attr,omitempty"`
-	ValidUntil          *time.Time     `xml:"validUntil,attr,omitempty"`
-	CacheDuration       *time.Duration `xml:"cacheDuration,attr,omitempty"`
-	Name                *string        `xml:",attr,omitempty"`
-	Signature           *etree.Element
+	XMLName             xml.Name             `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntitiesDescriptor"`
+	ID                  *string              `xml:",attr,omitempty"`
+	ValidUntil          *time.Time           `xml:"validUntil,attr,omitempty"`
+	CacheDuration       *time.Duration       `xml:"cacheDuration,attr,omitempty"`
+	Name                *string              `xml:",attr,omitempty"`
+	Signature           []byte               `xml:,innerxml`
 	EntitiesDescriptors []EntitiesDescriptor `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntitiesDescriptor"`
 	EntityDescriptors   []EntityDescriptor   `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntityDescriptor"`
 }
@@ -106,7 +106,7 @@ type Organization struct {
 //
 // See http://docs.oasis-open.org/security/saml/v2.0/saml-metadata-2.0-os.pdf §2.2.4
 type LocalizedName struct {
-	Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr,omitempty"`
+	Lang  string `xml:"http://www.w3.org/XML/1998/namespace lang,attr"`
 	Value string `xml:",chardata"`
 }
 

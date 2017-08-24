@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"encoding/xml"
@@ -14,9 +13,8 @@ import (
 
 	mgo "gopkg.in/mgo.v2"
 
-	"github.com/beevik/etree"
+	xmlsec "github.com/crewjam/go-xmlsec"
 	"github.com/markwallsgrove/saml_federation_proxy/models"
-	dsig "github.com/russellhaering/goxmldsig"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/streadway/amqp"
@@ -42,7 +40,46 @@ func parseRsaPrivateKeyFromPemStr(privPEM []byte) (*rsa.PrivateKey, error) {
 	return priv, nil
 }
 
-func task(msgs <-chan amqp.Delivery, session *mgo.Session, ctx *dsig.SigningContext, forever chan bool) {
+func getSignatureTemplate() []byte {
+	return []byte(`
+		<ds:Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+			<ds:SignedInfo>
+				<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+				<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+				<ds:Reference URI="#_">
+					<ds:Transforms>
+						<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+						<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+					</ds:Transforms>
+					<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+					<ds:DigestValue></ds:DigestValue>
+				</ds:Reference>
+			</ds:SignedInfo>
+			<ds:SignatureValue/>
+			<ds:KeyInfo>
+				<ds:KeyName />
+			</ds:KeyInfo>
+		</ds:Signature>
+	`)
+}
+
+func signXml(key []byte, xml []byte) (error, []byte) {
+	opts := xmlsec.SignatureOptions{
+		XMLID: []xmlsec.XMLIDOption{{
+			ElementName:      "EntitiesDescriptor",
+			ElementNamespace: "urn:oasis:names:tc:SAML:2.0:metadata",
+			AttributeName:    "ID",
+		},
+		}}
+
+	if signedXml, err := xmlsec.Sign(key, xml, opts); err != nil {
+		return err, nil
+	} else {
+		return nil, signedXml
+	}
+}
+
+func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever chan bool) {
 	for d := range msgs {
 		var exportTask models.ExportTask
 		err := models.Unmarshall(bytes.NewReader(d.Body), &exportTask)
@@ -62,41 +99,33 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, ctx *dsig.SigningCont
 		name := "https://fedproxy.com"
 		validUntil := time.Now().Add(time.Duration(24 * time.Hour))
 
+		signatureTemplate := getSignatureTemplate()
+
 		entitiesDescriptor := models.EntitiesDescriptor{
 			ID:                &id,
 			Name:              &name,
+			Signature:         signatureTemplate,
 			ValidUntil:        &validUntil,
 			EntityDescriptors: entityDescriptors,
 		}
 
 		// TODO: not so great
-		xmlEncoded, err := xml.Marshal(entitiesDescriptor)
+		xml, err := xml.Marshal(entitiesDescriptor)
 		if err != nil {
 			log.WithError(err).Error("cannot encode entities descriptor")
 			d.Reject(true)
 			continue
 		}
-		readXMLDoc := etree.NewDocument()
-		err = readXMLDoc.ReadFromBytes(xmlEncoded)
-		failOnError(err, "cannot parse xml")
 
-		elementToSign := readXMLDoc.Root()
-		elementToSign.CreateAttr("ID", "id1234")
+		log.WithField("xml", string(xml)).Info("signing xml")
+		err, signedXml := signXml(key, xml)
+		failOnError(err, "cannot sign XML")
 
-		signedElement, err := ctx.SignEnveloped(elementToSign)
-		failOnError(err, "failed to sign envelop")
-
-		var signedAssertionBuf []byte
-		newDoc := etree.NewDocument()
-		newDoc.SetRoot(signedElement)
-		signedAssertionBuf, err = newDoc.WriteToBytes()
-		failOnError(err, "failed to convert doc to bytes")
-
-		log.WithField("payload", string(signedAssertionBuf)).Info("signed xml")
+		log.WithField("payload", string(signedXml)).Info("signed xml")
 
 		exportResult := models.ExportResult{
 			Name:    exportTask.Name,
-			Payload: string(signedAssertionBuf),
+			Payload: string(signedXml),
 		}
 
 		if err := models.UpdateExportResult(exportResult, session); err != nil {
@@ -155,24 +184,12 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	keyBytes, err := ioutil.ReadFile("/saml.pem")
+	key, err := ioutil.ReadFile("/saml.pem")
 	failOnError(err, "Failed to load signing key")
-
-	certBytes, err := ioutil.ReadFile("/saml.crt")
-	failOnError(err, "Failed to read certificate")
-
-	keyPair, err := tls.X509KeyPair(certBytes, keyBytes)
-	failOnError(err, "invalided to load keypair")
-
-	keyStore := dsig.TLSCertKeyStore(keyPair)
-
-	signingContext := dsig.NewDefaultSigningContext(keyStore)
-	signingContext.Canonicalizer = dsig.MakeC14N10ExclusiveCanonicalizerWithPrefixList("")
-	err = signingContext.SetSignatureMethod(dsig.RSASHA256SignatureMethod)
 
 	forever := make(chan bool)
 
-	go task(msgs, session, signingContext, forever)
+	go task(msgs, session, key, forever)
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
