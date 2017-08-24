@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "02a30cbdf36d86ce0f2994990946443727123e6e"
+  revision = "e2020cd8c93775fedc5569d78b710411b70c564e"
 
 [[projects]]
   branch = "master"
