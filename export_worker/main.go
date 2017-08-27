@@ -40,27 +40,52 @@ func parseRsaPrivateKeyFromPemStr(privPEM []byte) (*rsa.PrivateKey, error) {
 	return priv, nil
 }
 
-func getSignatureTemplate() []byte {
-	return []byte(`
-		<ds:Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
-			<ds:SignedInfo>
-				<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
-				<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
-				<ds:Reference URI="#_">
-					<ds:Transforms>
-						<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
-						<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
-					</ds:Transforms>
-					<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
-					<ds:DigestValue></ds:DigestValue>
-				</ds:Reference>
-			</ds:SignedInfo>
-			<ds:SignatureValue/>
-			<ds:KeyInfo>
-				<ds:KeyName />
-			</ds:KeyInfo>
-		</ds:Signature>
-	`)
+// func getSignatureTemplate() []byte {
+// 	return []byte(`
+// 		<ds:Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+// 			<ds:SignedInfo>
+// 				<ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+// 				<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+// 				<ds:Reference URI="#_">
+// 					<ds:Transforms>
+// 						<ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+// 						<ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+// 					</ds:Transforms>
+// 					<ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+// 					<ds:DigestValue></ds:DigestValue>
+// 				</ds:Reference>
+// 			</ds:SignedInfo>
+// 			<ds:SignatureValue/>
+// 			<ds:KeyInfo>
+// 				<ds:KeyName />
+// 			</ds:KeyInfo>
+// 		</ds:Signature>
+// 	`)
+// }
+
+func getSignature() models.Signature {
+	return models.Signature{
+		SignedInfo: models.SignedInfo{
+			CanonicalizationMethod: models.CanonicalizationMethod{
+				Algorithm: "http://www.w3.org/2001/10/xml-exc-c14n#",
+			},
+			SignatureMethod: models.SignatureMethod{
+				Algorithm: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
+			},
+			Reference: models.Reference{
+				URI: "#_",
+				DigestMethod: models.DigestMethod{
+					Algorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
+				},
+				Transforms: models.Transforms{
+					Transform: []models.Transform{
+						models.Transform{Algorithm: "http://www.w3.org/2000/09/xmldsig#enveloped-signature"},
+						models.Transform{Algorithm: "http://www.w3.org/2001/10/xml-exc-c14n#"},
+					},
+				},
+			},
+		},
+	}
 }
 
 func signXml(key []byte, xml []byte) (error, []byte) {
@@ -99,12 +124,10 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 		name := "https://fedproxy.com"
 		validUntil := time.Now().Add(time.Duration(24 * time.Hour))
 
-		signatureTemplate := getSignatureTemplate()
-
 		entitiesDescriptor := models.EntitiesDescriptor{
 			ID:                &id,
 			Name:              &name,
-			Signature:         signatureTemplate,
+			Signature:         getSignature(),
 			ValidUntil:        &validUntil,
 			EntityDescriptors: entityDescriptors,
 		}

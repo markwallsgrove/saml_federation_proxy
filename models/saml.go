@@ -24,7 +24,7 @@ type EntitiesDescriptor struct {
 	ValidUntil          *time.Time           `xml:"validUntil,attr,omitempty"`
 	CacheDuration       *time.Duration       `xml:"cacheDuration,attr,omitempty"`
 	Name                *string              `xml:",attr,omitempty"`
-	Signature           []byte               `xml:,innerxml`
+	Signature           Signature            `xml:"Signature"`
 	EntitiesDescriptors []EntitiesDescriptor `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntitiesDescriptor"`
 	EntityDescriptors   []EntityDescriptor   `xml:"urn:oasis:names:tc:SAML:2.0:metadata EntityDescriptor"`
 }
@@ -160,10 +160,10 @@ type EncryptionMethod struct {
 // KeyInfo represents the XMLSEC object of the same name
 //
 // TODO(ross): revisit xmldsig and make this type more complete
-type KeyInfo struct {
-	XMLName     xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# KeyInfo"`
-	Certificate string   `xml:"X509Data>X509Certificate"`
-}
+// type KeyInfo struct {
+// 	XMLName     xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# KeyInfo"`
+// 	Certificate string   `xml:"X509Data>X509Certificate"`
+// }
 
 // Endpoint represents the SAML EndpointType object.
 //
@@ -285,6 +285,54 @@ type AffiliationDescriptor struct {
 	Signature          *etree.Element
 	AffiliateMembers   []string        `xml:"AffiliateMember"`
 	KeyDescriptors     []KeyDescriptor `xml:"KeyDescriptor"`
+}
+
+type Signature struct {
+	XMLName        xml.Name   `xml:"http://www.w3.org/2000/09/xmldsig# Signature"`
+	SignatureValue string     `xml:"http://www.w3.org/2000/09/xmldsig# SignatureValue"`
+	KeyInfo        KeyInfo    `xml:"KeyInfo"`
+	SignedInfo     SignedInfo `xml:"SignedInfo"`
+}
+
+type SignedInfo struct {
+	XMLName                xml.Name               `xml:"http://www.w3.org/2000/09/xmldsig# SignedInfo"`
+	SignatureMethod        SignatureMethod        `xml:"SignatureMethod"`
+	CanonicalizationMethod CanonicalizationMethod `xml:"CanonicalizationMethod"`
+	Reference              Reference              `xml:"Reference"`
+}
+
+type KeyInfo struct {
+	XMLName xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# KeyInfo"`
+	KeyName string   `xml:"http://www.w3.org/2000/09/xmldsig# KeyName"`
+}
+
+type Transform struct {
+	XMLName   xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# Transform"`
+	Algorithm string   `xml:"Algorithm,attr"`
+}
+type DigestMethod struct {
+	XMLName   xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# DigestMethod"`
+	Algorithm string   `xml:"Algorithm,attr"`
+}
+type CanonicalizationMethod struct {
+	XMLName   xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# CanonicalizationMethod"`
+	Algorithm string   `xml:"Algorithm,attr"`
+}
+type SignatureMethod struct {
+	XMLName   xml.Name `xml:"http://www.w3.org/2000/09/xmldsig# SignatureMethod"`
+	Algorithm string   `xml:"Algorithm,attr"`
+}
+type Reference struct {
+	XMLName      xml.Name     `xml:"http://www.w3.org/2000/09/xmldsig# Reference"`
+	URI          string       `xml:"URI,attr"`
+	DigestMethod DigestMethod `xml:"DigestMethod"`
+	Transforms   Transforms   `xml:"Transforms"`
+	DigestValue  string       `xml:"DigestValue"`
+}
+
+type Transforms struct {
+	XMLName   xml.Name    `xml:"http://www.w3.org/2000/09/xmldsig# Transforms"`
+	Transform []Transform `xml:"Transform"`
 }
 
 func fatalOnError(err error) {

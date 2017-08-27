@@ -20,10 +20,10 @@
   revision = "1aa2f9374afac12f9864ced5babe8ff74427eed2"
 
 [[projects]]
-  name = "github.com/crewjam/saml"
-  packages = [".","logger","xmlenc"]
-  revision = "6b5dd2d26974f7f5e59132ef5921fab7993794d7"
-  version = "0.2.0"
+   branch = "master"
+   name = "github.com/crewjam/saml"
+   packages = [".","logger","xmlenc"]
+   revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
