@@ -20,10 +20,10 @@
   revision = "1aa2f9374afac12f9864ced5babe8ff74427eed2"
 
 [[projects]]
-   branch = "master"
-   name = "github.com/crewjam/saml"
-   packages = [".","logger","xmlenc"]
-   revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
+  branch = "master"
+  name = "github.com/crewjam/saml"
+  packages = [".","logger","xmlenc"]
+  revision = "446329e8c4c41e3a72b7e9aa08d8f8fad7228eea"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/markwallsgrove/saml_federation_proxy"
   packages = ["models"]
-  revision = "e2020cd8c93775fedc5569d78b710411b70c564e"
+  revision = "6ebc289f8a076dc3fc4615bcadedbd6f79da35b8"
 
 [[projects]]
   branch = "master"
@@ -59,13 +59,13 @@
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ripemd160","ssh/terminal"]
-  revision = "eb71ad9bd329b5ac0fd0148dd99bd62e8be8e035"
+  revision = "81e90905daefcd6fd217b62423c0908922eadb30"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix","windows"]
-  revision = "07c182904dbd53199946ba614a412c61d3c548f5"
+  revision = "2d6f6f883a06fc0d5f4b14a81e4c28705ea64c15"
 
 [[projects]]
   branch = "v2"
