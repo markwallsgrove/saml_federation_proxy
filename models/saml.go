@@ -324,6 +324,7 @@ type SignatureMethod struct {
 }
 type Reference struct {
 	XMLName       xml.Name     `xml:"http://www.w3.org/2000/09/xmldsig# Reference"`
+	URI           string       `xml:"URI,attr"`
 	ATransforms   Transforms   `xml:"Transforms"`
 	BDigestMethod DigestMethod `xml:"DigestMethod"`
 	CDigestValue  string       `xml:"DigestValue"`
