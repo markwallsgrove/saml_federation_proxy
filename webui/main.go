@@ -65,8 +65,9 @@ func apiEntityDescriptorHandler(w http.ResponseWriter, r *http.Request, context 
 func apiEntityDescriptorsHandler(w http.ResponseWriter, r *http.Request, context *Context) interface{} {
 	os := getInt(r, "offset", 0, 1000000, 0)
 	lmt := getInt(r, "limit", 1, 100, 10)
+	q := getString(r, "query", "")
 
-	entityDescriptors, err := models.PaginateEntityDescriptors(os, lmt, context.Session)
+	entityDescriptors, err := models.PaginateEntityDescriptors(os, lmt, q, context.Session)
 	if err != nil {
 		handleError(err, w)
 		return nil
