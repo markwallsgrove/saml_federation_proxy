@@ -73,7 +73,6 @@ func getSignature() models.Signature {
 				Algorithm: "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256",
 			},
 			Reference: models.Reference{
-				URI: "#_",
 				DigestMethod: models.DigestMethod{
 					Algorithm: "http://www.w3.org/2001/04/xmlenc#sha256",
 				},
@@ -111,7 +110,7 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 
 		if err != nil {
 			log.WithField("error", err).Error("cannot process export task")
-			d.Reject(true)
+			d.Reject(false)
 			continue
 		}
 
@@ -120,7 +119,7 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 			session,
 		)
 
-		id := "jlsdfjklfdjkl544534" // TODO: what is a good id?
+		id := "_" // TODO: what is a good id?
 		name := "https://fedproxy.com"
 		validUntil := time.Now().Add(time.Duration(24 * time.Hour))
 
@@ -136,13 +135,17 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 		xml, err := xml.Marshal(entitiesDescriptor)
 		if err != nil {
 			log.WithError(err).Error("cannot encode entities descriptor")
-			d.Reject(true)
+			d.Reject(false)
 			continue
 		}
 
 		log.WithField("xml", string(xml)).Info("signing xml")
 		err, signedXml := signXml(key, xml)
-		failOnError(err, "cannot sign XML")
+		if err != nil {
+			log.WithError(err).Error("cannot sign xml")
+			d.Reject(false)
+			continue
+		}
 
 		log.WithField("payload", string(signedXml)).Info("signed xml")
 
@@ -153,7 +156,7 @@ func task(msgs <-chan amqp.Delivery, session *mgo.Session, key []byte, forever c
 
 		if err := models.UpdateExportResult(exportResult, session); err != nil {
 			log.WithError(err).Error("cannot upsert export result")
-			d.Reject(true)
+			d.Reject(false)
 			continue
 		}
 

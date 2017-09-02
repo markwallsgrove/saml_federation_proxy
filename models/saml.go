@@ -288,17 +288,17 @@ type AffiliationDescriptor struct {
 }
 
 type Signature struct {
-	XMLName        xml.Name   `xml:"http://www.w3.org/2000/09/xmldsig# Signature"`
-	SignatureValue string     `xml:"http://www.w3.org/2000/09/xmldsig# SignatureValue"`
-	KeyInfo        KeyInfo    `xml:"KeyInfo"`
-	SignedInfo     SignedInfo `xml:"SignedInfo"`
+	XMLName         xml.Name   `xml:"http://www.w3.org/2000/09/xmldsig# Signature"`
+	ASignedInfo     SignedInfo `xml:"SignedInfo"`
+	BSignatureValue string     `xml:"http://www.w3.org/2000/09/xmldsig# SignatureValue"`
+	CKeyInfo        KeyInfo    `xml:"KeyInfo"`
 }
 
 type SignedInfo struct {
-	XMLName                xml.Name               `xml:"http://www.w3.org/2000/09/xmldsig# SignedInfo"`
-	SignatureMethod        SignatureMethod        `xml:"SignatureMethod"`
-	CanonicalizationMethod CanonicalizationMethod `xml:"CanonicalizationMethod"`
-	Reference              Reference              `xml:"Reference"`
+	XMLName                 xml.Name               `xml:"http://www.w3.org/2000/09/xmldsig# SignedInfo"`
+	ACanonicalizationMethod CanonicalizationMethod `xml:"CanonicalizationMethod"`
+	BSignatureMethod        SignatureMethod        `xml:"SignatureMethod"`
+	CReference              Reference              `xml:"Reference"`
 }
 
 type KeyInfo struct {
@@ -323,11 +323,10 @@ type SignatureMethod struct {
 	Algorithm string   `xml:"Algorithm,attr"`
 }
 type Reference struct {
-	XMLName      xml.Name     `xml:"http://www.w3.org/2000/09/xmldsig# Reference"`
-	URI          string       `xml:"URI,attr"`
-	DigestMethod DigestMethod `xml:"DigestMethod"`
-	Transforms   Transforms   `xml:"Transforms"`
-	DigestValue  string       `xml:"DigestValue"`
+	XMLName       xml.Name     `xml:"http://www.w3.org/2000/09/xmldsig# Reference"`
+	ATransforms   Transforms   `xml:"Transforms"`
+	BDigestMethod DigestMethod `xml:"DigestMethod"`
+	CDigestValue  string       `xml:"DigestValue"`
 }
 
 type Transforms struct {
