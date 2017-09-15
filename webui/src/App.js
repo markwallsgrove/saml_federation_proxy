@@ -10,13 +10,11 @@ import {
 
 import 'bootstrap/dist/css/bootstrap.css';
 import './css/style.css';
-import InfiniteScroll from 'react-infinite-scroller';
 
 const EE = new EventEmitter();
 
-function paginateEntityDescriptors(page) {
-    const offset = page * 10;
-    const url = '/1/api/entitydescriptors?offset=' + offset + "&limit=10";
+function paginateEntityDescriptors() {
+    const url = '/1/api/entitydescriptors';
 
     return axios.get(url).then(resp => {
         // TODO: error?
@@ -87,7 +85,6 @@ class ExportEntityDescriptors extends React.Component {
 
         // TODO: should a msg to create a export if none exist
         this.state = {
-            hasMoreItems: true,
             entitydescriptors: [],
             exp: {
                 EntityDescriptors: [],
@@ -115,64 +112,39 @@ class ExportEntityDescriptors extends React.Component {
         });
     }
 
-    // componentDidMount() {
-    //     paginateEntityDescriptors().then(resp => {
-    //         this.setState({entitydescriptors: resp});
-    //     });
-    // }
-
-    loadItems(page) {
-        paginateEntityDescriptors(page).then(resp => {
-            const eds = this.state.entitydescriptors;
-
-            resp.map((ed) => {
-                eds.push(ed);
-            });
-
-            this.setState({
-                entitydescriptors: eds,
-                hasMoreItems: resp.length == 10,
-            });
+    componentDidMount() {
+        paginateEntityDescriptors().then(resp => {
+            this.setState({entitydescriptors: resp});
         });
     }
 
     render() {
         const selected = this.state.exp.EntityDescriptors;
         const exportName = this.state.exp.Name;
-        const loader = <div className="loader">Loading ...</div>;
-
-        const items = this.state.entitydescriptors.map((ed, i) => {
-            const isActive = selected.indexOf(ed.EntityID) > -1
-            const statusClass = isActive ? 'active' : 'inactive';
-            const statusIcon = isActive
-                ? 'glyphicon glyphicon-remove-circle'
-                : 'glyphicon glyphicon-ok-circle';
-            const btnClass = isActive ? 'btn-danger' : 'btn-success';
-            const btnText = isActive ? 'remove' : 'add';
-            const toggleEntityId = this.toggleEdOnExport.bind(this, ed.EntityID, isActive);
-
-            return <Panel header={ed.EntityID} eventKey={i} className={statusClass}>
-                EntityID: {ed.EntityID}
-                <br />
-                Federtion: {ed.FederationID}
-                <br /><br />
-                <Button onClick={toggleEntityId} className={btnClass}><Glyphicon glyph={statusIcon} /> {btnText}</Button>
-            </Panel>
-        })
 
         return (
             <div className="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" id="entityDescriptorList">
                 <h2>{exportName}</h2>
-                    <InfiniteScroll
-                        pageStart={0}
-                        loadMore={this.loadItems.bind(this)}
-                        hasMore={this.state.hasMoreItems}
-                        loader={loader}>
+                <Accordion>
+                    {this.state.entitydescriptors.map((ed, i) => {
+                        const isActive = selected.indexOf(ed.EntityID) > -1
+                        const statusClass = isActive ? 'active' : 'inactive';
+                        const statusIcon = isActive
+                            ? 'glyphicon glyphicon-remove-circle'
+                            : 'glyphicon glyphicon-ok-circle';
+                        const btnClass = isActive ? 'btn-danger' : 'btn-success';
+                        const btnText = isActive ? 'remove' : 'add';
+                        const toggleEntityId = this.toggleEdOnExport.bind(this, ed.EntityID, isActive);
 
-                        <div className="tracks">
-                            <Accordion>{items}</Accordion>
-                        </div>
-                    </InfiniteScroll>
+                        return <Panel header={ed.EntityID} eventKey={i} className={statusClass}>
+                            EntityID: {ed.EntityID}
+                            <br />
+                            Federtion: {ed.FederationID}
+                            <br /><br />
+                            <Button onClick={toggleEntityId} className={btnClass}><Glyphicon glyph={statusIcon} /> {btnText}</Button>
+                        </Panel>
+                    })}
+                </Accordion>
             </div>
         );
     }

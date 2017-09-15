@@ -37,18 +37,13 @@ func FindEntityDescriporsByName(names []string, session *mgo.Session) ([]EntityD
 	return entityDescriptors, err
 }
 
-func PaginateEntityDescriptors(os int, lmt int, q string, session *mgo.Session) ([]EntityDescriptor, error) {
+func PaginateEntityDescriptors(os int, lmt int, session *mgo.Session) ([]EntityDescriptor, error) {
 	// TODO: skip & limit is slow with large amount of data
 
 	c := session.DB("fedproxy").C("entityDescriptors")
+
 	var entityDescriptors []EntityDescriptor
-
-	query := bson.M{}
-	if q != "" {
-		query = bson.M{"entityid": bson.RegEx{q, ""}}
-	}
-
-	err := c.Find(query).Sort("-_id").Skip(os).Limit(lmt).All(&entityDescriptors)
+	err := c.Find(nil).Sort("-_id").Skip(os).Limit(lmt).All(&entityDescriptors)
 	return entityDescriptors, err
 }
 
