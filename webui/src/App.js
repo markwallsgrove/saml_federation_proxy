@@ -124,7 +124,6 @@ class ExportEntityDescriptors extends React.Component {
 
         return (
             <div className="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" id="entityDescriptorList">
-                <h2>{exportName}</h2>
                 <Accordion>
                     {this.state.entitydescriptors.map((ed, i) => {
                         const isActive = selected.indexOf(ed.EntityID) > -1
@@ -188,6 +187,7 @@ class ExportSideBar extends React.Component {
         super(props);
         this.state = {
             exports: {},
+            selected: '',
         };
 
         EE.on('refresh-exports', this.refreshExports, this);
@@ -214,6 +214,7 @@ class ExportSideBar extends React.Component {
     }
 
     triggerShowExportEvent(exp) {
+        this.setState({selected: exp.Name});
         EE.emit('show-export-event', exp);
     }
 
@@ -232,7 +233,8 @@ class ExportSideBar extends React.Component {
                 <CreateExportInput />
                 <ul className="nav nav-sidebar">
                     {Object.values(exports).map(exp => {
-                        return <li onClick={trigger.bind(this, exp)}>{exp.Name}</li>
+                        const selected = exp.Name == this.state.selected ? 'active' : '';
+                        return <li class="nav-link {selected}" onClick={trigger.bind(this, exp)}>{exp.Name}</li>
                     })}
                 </ul>
             </div>

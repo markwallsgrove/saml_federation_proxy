@@ -24,3 +24,8 @@ body {
 .panel-group .active .panel-heading {
     background-color: #e0e7e0;
 }
+
+#exportSideBar .nav .nav-link.active {
+    background-color: #007bff;
+    color: #FFFFFF;
+}
