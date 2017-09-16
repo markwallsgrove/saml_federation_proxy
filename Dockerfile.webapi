@@ -1,0 +1,17 @@
+FROM golang:1.8-alpine AS go-build-env
+RUN apk update && apk upgrade && apk add --no-cache bash git openssh curl g++ \
+    make perl
+RUN mkdir -p /go/src/github.com/markwallsgrove/saml_federation_proxy \
+    /go/src/github.com/markwallsgrove/saml_federation_proxy/models \
+    /go/src/github.com/markwallsgrove/saml_federation_proxy/webapi
+COPY webapi/main.go /go/src/github.com/markwallsgrove/saml_federation_proxy/webapi
+COPY models /go/src/github.com/markwallsgrove/saml_federation_proxy/models
+WORKDIR /go/src/github.com/markwallsgrove/saml_federation_proxy/webapi
+
+RUN go-wrapper download && CGO_ENABLED=0 go build -a -ldflags '-s' -o /bin/webapi main.go
+
+FROM ubuntu
+COPY --from=go-build-env /bin/webapi /bin
+COPY webapi/saml.crt /public/saml.crt
+CMD ["/bin/webapi"]
+EXPOSE 80

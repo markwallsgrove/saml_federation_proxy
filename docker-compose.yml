@@ -28,11 +28,15 @@ export_worker:
         - mongodb
 webui:
     image: "webui:latest"
+    expose:
+        - "80"
+webapi:
+    image: "webapi:latest"
+    expose:
+        - "80"
     environment:
         QUEUE_CONN: "amqp://rabbitmq:rabbitmq@rabbit:5672/"
         MONGO_CONN: "mongodb"
-    ports:
-        - "8282:8080"
     links:
         - rabbit
         - mongodb
@@ -44,3 +48,10 @@ mongodb:
     ports:
         - 27017:27017
     command: mongod --smallfiles --logpath=/dev/null # --quiet
+reverse_proxy:
+    image: reverse_proxy:latest
+    ports:
+        - 8080:8080
+    links:
+        - webui
+        - webapi
