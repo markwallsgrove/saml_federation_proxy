@@ -145,50 +145,50 @@ class Home extends React.Component {
     }
 }
 
-class IDPDetails extends React.Component {
+class ServiceDetails extends React.Component {
     constructor(props) {
         super(props);
     }
 
     submit() {
-        this.props.submit(this.idp());
+        this.props.submit(this.service());
     }
 
     delete() {
-        this.props.delete(this.idp());
+        this.props.delete(this.service());
     }
 
     handleChange() {
-        this.props.handleChange(this.idp());
+        this.props.handleChange(this.service());
     }
 
-    idp() {
+    service() {
         return {
             name: this.refs.name.value,
             endpoint: this.refs.endpoint.value,
             certificateLocation: this.refs.certificateLocation.value,
-            id: this.props.idp.id,
+            id: this.props.service.id,
         };
     }
 
     render() {
-        const deleteButton = this.props.idp.id && this.props.idp.id !== '1'
+        const deleteButton = this.props.service.id && this.props.service.id !== '1'
             ? <button type="submit"
                 className="btn btn-danger"
                 onClick={this.delete.bind(this)}>delete</button>
             : null;
 
         return (
-            <div className="col-sm-10 idpDetails">
+            <div className="col-sm-10 serviceDetails">
                 <div className="form-group">
-                    <label htmlFor="name">IDP Name</label>
+                    <label htmlFor="name">Name</label>
                     <input
                         className="form-control"
                         type="text"
                         placeholder="name"
                         name="name"
                         ref="name"
-                        value={this.props.idp.name}
+                        value={this.props.service.name}
                         onChange={this.handleChange.bind(this)} />
                 </div>
                 <div className="form-group">
@@ -199,7 +199,7 @@ class IDPDetails extends React.Component {
                         placeholder="url"
                         name="endpoint"
                         ref="endpoint"
-                        value={this.props.idp.endpoint}
+                        value={this.props.service.endpoint}
                         onChange={this.handleChange.bind(this)} />
                 </div>
                 <div className="form-group">
@@ -210,7 +210,7 @@ class IDPDetails extends React.Component {
                         placeholder="url"
                         name="certificateLocation"
                         ref="certificateLocation"
-                        value={this.props.idp.certificateLocation}
+                        value={this.props.service.certificateLocation}
                         onChange={this.handleChange.bind(this)} />
                 </div>
                 <button
@@ -223,7 +223,7 @@ class IDPDetails extends React.Component {
     }
 }
 
-class IDP extends React.Component {
+class Service extends React.Component {
     constructor(props) {
         super(props);
 
@@ -262,27 +262,31 @@ class IDP extends React.Component {
             return;
         }
 
-        this.props.api.get(link.id).then((idp) => {
-            this.setState({selected: idp || this.defaultCreateData});
+        this.props.api.get(link.id).then((service) => {
+            this.setState({selected: service || this.defaultCreateData});
         });
     }
 
-    handleIdpChange(idp) {
-        this.setState({selected: idp});
+    handleChange(service) {
+        this.setState({selected: service});
     }
 
-    submitIdp(idp) {
-        this.props.api.save(idp).then((idp) => {
+    submit(service) {
+        if (service.id == '1') {
+            delete service.id;
+        }
+
+        this.props.api.save(service).then((service) => {
             const selected = this.state.selected;
-            selected.id = idp.id;
+            selected.id = service.id;
             this.setState({selected});
 
             this.updateList();
         });
     }
 
-    deleteIdp(idp) {
-        this.props.api.delete(idp).then(() => {
+    delete(service) {
+        this.props.api.delete(service).then(() => {
             this.setState({selected: this.defaultCreateData()})
             this.updateList();
         });
@@ -294,16 +298,16 @@ class IDP extends React.Component {
             : '';
 
         return (
-            <div id="idp">
+            <div id="service">
                 <Sidebar
                     links={this.state.links}
                     selected={selected}
                     handleSelection={this.handleSelection.bind(this)} />
-                <IDPDetails
-                    idp={this.state.selected}
-                    handleChange={this.handleIdpChange.bind(this)}
-                    submit={this.submitIdp.bind(this)}
-                    delete={this.deleteIdp.bind(this)} />
+                <ServiceDetails
+                    service={this.state.selected}
+                    handleChange={this.handleChange.bind(this)}
+                    submit={this.submit.bind(this)}
+                    delete={this.delete.bind(this)} />
             </div>
         );
     }
@@ -362,6 +366,59 @@ class IdpApi {
     }
 }
 
+class FederationApi {
+    constructor() {
+        this.counter = 4;
+        this.federations = {
+            '2': {
+                id: '2',
+                name: 'test federation',
+                endpoint: 'https://example.com/federation/payload',
+                certificateLocation: 'https://example.com/federation/cert',
+            },
+            '3': {
+                id: '3',
+                name: 'test2',
+                endpoint: 'https://example.com/federation2/payload',
+                certificateLocation: 'https://example.com/federation2/cert',
+            },
+        };
+    }
+
+    list() {
+        return new Promise((resolve) => {
+            resolve(Object.keys(this.federations).map((k) => {
+                var v = this.federations[k];
+                return {id: v.id, name: v.name};
+            }));
+        });
+    }
+
+    get(name) {
+        return new Promise((resolve) => {
+            resolve(this.federations[name]);
+        });
+    }
+
+    save(federation) {
+        return new Promise((resolve) => {
+            if (!federation.id) {
+                federation.id = '' + ++this.counter;
+            }
+
+            this.federations[federation.id] = federation;
+            resolve(federation);
+        });
+    }
+
+    delete(federation) {
+        return new Promise((resolve) => {
+            delete this.federations[federation.id];
+            resolve();
+        });
+    }
+}
+
 class App extends React.Component {
     constructor(props) {
         super(props);
@@ -369,7 +426,11 @@ class App extends React.Component {
 
     render() {
         const createIDP = (props) => {
-            return (<IDP api={this.props.idpApi} {...props} />);
+            return <Service api={this.props.idpApi} {...props} />;
+        };
+
+        const createFederation = (props) => {
+            return <Service api={this.props.federationApi} {...props} />;
         };
 
         return (
@@ -395,6 +456,7 @@ class App extends React.Component {
                             <Switch>
                                 <Route exact path="/" component={Home} />
                                 <Route exact path="/idps" component={createIDP} />
+                                <Route exact path="/federations" component={createFederation} />
                             </Switch>
                         </div>
                     </div>
@@ -404,4 +466,7 @@ class App extends React.Component {
     }
 }
 
-ReactDOM.render(<App idpApi={new IdpApi()} />,  document.getElementById('app'))
+const app = <App
+    idpApi={new IdpApi()}
+    federationApi={new FederationApi()} />
+ReactDOM.render(app,  document.getElementById('app'))

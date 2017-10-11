@@ -11,7 +11,7 @@
     background-color: #e0e7e0;
 }
 
-#idp {
+#service {
     position: fixed;
     top: 51px;
     bottom: 0;
@@ -19,22 +19,22 @@
     left: 0;
 }
 
-#idp .sidebar ul {
+#service .sidebar ul {
     padding: 0;
 }
 
-#idp .sidebar ul li {
+#service .sidebar ul li {
     list-style: none;
     padding-left: 15px;
     text-transform: lowercase;
 }
 
-#idp .sidebar ul li.active {
+#service .sidebar ul li.active {
     background-color: #626262;
     color: #FFFFFF;
 }
 
-#idp .idpDetails {
+#service .serviceDetails {
     height: 100%;
     padding: 10px;
 }
